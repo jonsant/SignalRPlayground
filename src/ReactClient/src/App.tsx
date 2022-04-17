@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import './App.css';
 import * as signalR from "@microsoft/signalr";
-import { Message } from './Models';
+import { Message } from './Models/Message';
 
 function App() {
 
@@ -9,20 +9,31 @@ function App() {
   const [message, setMessage] = useState<string>("");
   const [username, setUsername] = useState<number>(0);
   const [messages, setMessages] = useState<Message[]>([]);
+  const [chatConnectionInfo, setChatConnectionInfo] = useState<string>("Disconnected");
 
   useEffect(() => {
     setUsername(new Date().getTime());
-    const connection = new signalR.HubConnectionBuilder().withUrl("https://localhost:7024/hub").withAutomaticReconnect().build();
-    connection.start().then(result => {console.log("signalr connected")}).catch((err) => console.log("connection error: " + err));
-    setConnection(connection);
+    startConnection();
   }, []);
+
+  const startConnection = () => {
+    const connection = new signalR.HubConnectionBuilder().withUrl("https://localhost:7024/hub")
+    //.withAutomaticReconnect()
+    .build();
+    connection.start().then(result => {setChatConnectionInfo(connection.state)}).catch((err) => console.log("connection error: " + err));
+    setConnection(connection);
+  }
 
   connection?.on("messageReceived", (username: string, message: string) => {
     const msg = {username: username, message: message} as Message;
-    console.log("fick mede " + message);
-    const jj: Message[] = [...messages];
-    jj.push(msg);
-    setMessages(jj);
+    const newMsgs: Message[] = [...messages];
+    newMsgs.push(msg);
+    setMessages(newMsgs);
+  });
+
+  connection?.onclose(() => {
+    setChatConnectionInfo("Disconnected");
+    setTimeout(startConnection, 5000);
   });
 
   const messageEdited = (message: string) => {
@@ -31,7 +42,7 @@ function App() {
 
   return (
     <div className="App">
-      <div className="divMessages"></div>
+      <p className='chatConnectionInfo'>{chatConnectionInfo}</p>
       <div className='input-zone'>
         <label htmlFor="tbMessage">Message:</label>
         <input id='tbMessage' value={message} className="input-zone-input" type="text" onChange={(e) => messageEdited(e.currentTarget.value)}/>

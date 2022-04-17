@@ -14,7 +14,14 @@ namespace SignalRTest.Hubs.SignalRWebpack
         public override async Task OnConnectedAsync()
         {
             await base.OnConnectedAsync();
+            await Clients.Caller.SendAsync("messageReceived", "Server", "Welcome!");
             logger.LogInformation("Connection Established");
+        }
+
+        public override async Task OnDisconnectedAsync(Exception? exception)
+        {
+            await base.OnDisconnectedAsync(exception);
+            logger.LogInformation("Connection closed");
         }
 
         [HubMethodName("SendMessageToAll")]
